@@ -1,0 +1,1426 @@
+using {/UnrealEngine.com/Temporary/SpatialMath}
+using {/UnrealEngine.com/Temporary/UI}
+using { /Fortnite.com/Devices }
+using { /Fortnite.com/UI }
+using { /Verse.org/Simulation }
+using { /Verse.org/Random }
+using { /Verse.org/Colors/NamedColors }
+OtorgadoraDeItem := class():
+    DarItem<public>(Agent:agent, Nama:string, CodigoDeItem:int, Granti:item_granter_device)<suspends>:void =
+        Granti.SetNextItem(CodigoDeItem)
+        Granti.GrantItem(Agent)
+        Granti.SetNextItem(0)
+
+
+WeapondIndexa:=class(OtorgadoraDeItem):
+Cofre_De_Loot := class(creative_device):
+    @editable ChestInOne :int=0
+    @editable Especial_Mode:logic=false
+
+    @editable GrantComun:item_granter_device=item_granter_device{}<#Recuerda esto es para luego las rarezas#>
+
+    @editable GrantPocoComun:item_granter_device=item_granter_device{}
+
+    @editable GrantRare:item_granter_device=item_granter_device{}
+
+    @editable GrantEpic:item_granter_device=item_granter_device{}
+
+    @editable GrantLegendary:item_granter_device=item_granter_device{}
+
+    @editable GrantObjetosYCuras :item_granter_device=item_granter_device{}
+
+    var Granto :item_granter_device=item_granter_device{}<#No lo elimines, es bastante importante al ser nuestra variable #>
+
+    @editable AvisoLlave: hud_message_device=hud_message_device{}<#Tambien te puede servir para cuando te salga un objeto en específico  IndicacionDeDondeEstaLaFuncion #>
+
+
+    IndicacionDeDondeEstaLaFuncion:WeapondIndexa=WeapondIndexa{}
+
+    @editable AbrirConBoton :[]button_device = array{} <#Es el array de los botones que nos serán cofres#>
+    @editable AbrirConSwitch :[]switch_device =array{} <#Es el array de los botones que nos serán switch#>
+
+    <#Probabilidades de salir cada objeto#>
+    @editable ProbComun:int=0
+    @editable ProbPocoComun:int=0
+    @editable ProbRaro:int=0
+    @editable ProbEpico:int=0
+    @editable ProbLegendario:int=0
+
+
+    <#Esto nos servira posteriormente para asignarle a cada tipo de arma una zona de números donde estara la referencia#>
+    @editable maxPis:int=0
+    @editable maxL :int= 0<#Esto es para subfusiles#>
+    <#Recuerda SE USARA EL MÁXIMO DEL ANTERIOR COMO EL MINIMO DEL SIGUIENTE#>
+    @editable maxML :int =0<#Esto es para Fusiles#>
+    @editable maxMP :int=0<#Esto es para Fusiles#>
+
+
+    @editable maxE:int=0<#Esto es para Escopetas#>
+    @editable maxE2:int=0<#Esto es para Escopetas#>
+    @editable maxE3:int=0<#Esto es para Escopetas#>
+
+
+    @editable maxAA:int=0<#Esto es para Arcos#>
+    @editable maxAB:int=0<#Esto es para Ballestas#>
+    @editable maxD:int=0<#Esto es para Fusiles de tirador designados#>
+    @editable maxF:int=0<#Esto es para Francotiradores#>
+
+
+    @editable maxC:int=0<#Esto es para Armas cuerpo a cuerpo#>
+
+
+    @editable maxEx:int=0<#Esto es para Explosivos#>
+
+
+    @editable maxRE:int=0<#Esto es para Revolver y otras armas parecidas#>
+
+
+
+
+    @editable maxO:int=0<#Esto es para otro tipo de armas#>
+
+
+    @editable maxMA:int=0 <#Esto es para armas que dan movilidad#>
+
+    <#Para Simplifiar usareos otro granter epezando de nuevo desde cero#>
+    
+    @editable Recuerda_Aqui_Otro_Grant:logic=true
+
+    @editable maxMO:int=0<#Esto es para objetos de movilidad#>
+
+
+    @editable maxOD:int=0 <#Esto es para objetos defensivos#>
+
+
+    @editable maxOO:int=0 <#Esto es para objetos ofensivos#>
+
+
+    @editable maxCVP:int=0 <#Esto es para curas de vida pequeña#>
+
+
+    @editable maxCVG:int=0 <#Esto es para curas de vida grande#>
+
+
+    @editable maxCEP:int=0 <#Esto es para curas de escudo pequeñas#>
+
+
+    @editable maxCEG:int=0 <#Esto es para curas de esudo grande#>
+
+
+    @editable maxCMP:int=0 <#Curas mixtas pequeñas#>
+
+
+    @editable maxCMG:int=0 <#Esto es para curas mixtas grandes#>
+    var Called : logic = false <#Esto es para procesos futuros no tocar (No quitar)#>
+    var Interracted : logic = false <#Esto es para procesos futuros no tocar#>
+    var Grid :[][]int = array{} <#Esto es para procesos futuros no tocar#>
+    @editable PasaData : mediator_device = mediator_device{}
+    SendData():void = <#Esto se ocupa de pasar las arams selecionada a otros devices#>
+        Print("data has been send")
+        Data :[][]int= InicioRonda()
+        set Grid = Data
+       
+        PasaData.StoreData(Data)
+
+
+    OnBegin<override>()<suspends>:void=
+        SendData()
+        for (Index -> Button : AbrirConBoton):<#Esto es necesario para que funcione el array#>
+            Button.InteractedWithEvent.Subscribe(button_handlera{ButtonIndexa := Index, Devicea := Self}.OnButtonPressed)
+        for (Index -> Button : AbrirConSwitch):
+            Button.TurnedOnEvent.Subscribe(button_handlera{ButtonIndexa := Index, Devicea := Self}.OnButtonPressed)
+
+    InicioRonda():[][]int= <#Recuerda Aqui se decide el loot de la partida#>
+       
+        if (Called = false): <#Esto es para evitar que solo se genere un lootpool por partida#>
+            Print("Se ha modificado los valores")
+            var P :int =GetRandomInt(0,maxPis)
+            var L1 :int =GetRandomInt(maxPis+1, maxL)
+            var L2 :int =GetRandomInt(maxPis+1, maxL)
+            loop:<#Este loot es para prevenir  que en el loot existan armas duplicadas#>
+           
+                if(L1=L2):
+                    set L2 =GetRandomInt(maxPis+1, maxL)
+                else break
+            Ligeras :[]int = array{P,L1,L2} <#Esto es un array donde guardareos todas las aras que usan balas ligeras#>
+
+
+            var M1 :int =GetRandomInt(maxL+2, maxML)
+            var M2 :int =GetRandomInt(maxL+2, maxMP)
+            loop:
+               
+                if(M1=M2):
+                    set M2 =GetRandomInt(maxL+2, maxMP)
+                else break
+            var M3 :int =GetRandomInt(maxL+2, maxMP)
+            loop:
+               
+                if(M1=M3 or M2=M3):
+                    set M3 =GetRandomInt(maxL+1, maxMP)
+                else break
+            Medianas :[]int = array{M1,M2,M3}<#Esto es un array donde guardareos todas las aras que usan balas medianas#>
+           
+            var EL :int = GetRandomInt(maxMP+1, maxE)
+            var EM :int =GetRandomInt(maxE+1, maxE2)
+            loop:
+               
+                if(EL=EM):
+                    set EM =GetRandomInt(maxE+1, maxE2)
+                else break
+            var EP :int=GetRandomInt(maxE2+1, maxE3)
+            loop:
+               
+                if(EL=EP or EM=EP):
+                    set EP =GetRandomInt(maxE2+1, maxE3)
+                else break
+            Escopeta :[]int = array{EL,EM,EP}<#Esto es un array donde guardareos todas las aras que usan cartuhos (A i e gusta dividir als esopetas
+            en ligeras para las rápidas, medianas para las del medio y pesada para las lentas)#>
+           
+            var AA :int =GetRandomInt(maxE3+1, maxAA)
+            var AB:int =GetRandomInt(maxAA+1, maxAB)
+            loop:
+               
+                if(AA=AB):
+                    set AB =GetRandomInt(maxAA+1, maxAB)
+                else break
+            Arco :[]int = array{AA,AB} <#¿Creo que ya esta claro no?#>
+           
+            var PD:int =GetRandomInt(maxAB+1, maxD)<#Para designado#>
+            var PF:int =GetRandomInt(maxD+1, maxF)<#Para francotiradores#>
+            loop:
+               
+                if(PD=PF):
+                    set PF =GetRandomInt(maxD+1, maxF)
+                else break
+            Pesada :[]int = array{PD,PF} <#¿Creo que ya esta claro no?#>
+           
+            var C1:int=GetRandomInt(maxF+1, maxC)
+
+
+            Cuerpo :[]int = array{C1} <#¿Creo que ya esta claro no?#>
+           
+            var E1 :int=GetRandomInt(maxC+1, maxEx)
+            Explosivos:[]int =array{E1}<#¿Creo que ya esta claro no?#>
+            var RE1:int=GetRandomInt(maxEx+1, maxRE)
+            Revolver :[]int = array{RE1}<#¿Creo que ya esta claro no?#>
+
+
+            var O1:int=GetRandomInt(maxRE+1, maxO)
+            Otros :[]int = array{O1} <#¿Creo que ya esta claro no?#>
+           
+            var MA1 :int =GetRandomInt(maxO+1, maxMA)
+            MovilidadA :[]int = array{MA1} <#¿Creo que ya esta claro no?#>
+           
+
+
+            <#Ahora para objetos#>
+            var Mo1: int = GetRandomInt(0, maxMO)
+            var Mo2:int =GetRandomInt(0, maxMO)
+            loop:
+               
+                if(Mo1=Mo2):
+                    set Mo2 =GetRandomInt(0, maxMO)
+                else break
+            MovilidadObjeto :[]int = array{Mo1,Mo2} <#¿Creo que ya esta claro no?#>
+            var OO1:int=GetRandomInt(maxMO+1, maxOO)
+            var OO2:int=GetRandomInt(maxMO+1, maxOO)
+            loop:
+               
+                if(OO1=OO2):
+                    set OO2 =GetRandomInt(maxMO+1, maxOO)
+                else break
+            var OO3:int=GetRandomInt(maxMO+1, maxOO)
+            loop:
+               
+                if(OO1=OO3 or OO2=OO3):
+                    set OO3 =GetRandomInt(maxMO+1, maxOO)
+                else break
+            ObjetosO :[]int = array{OO1,OO2}<#¿Creo que ya esta claro no?#>
+           
+            var OD1:int=GetRandomInt(maxOO+1, maxOD)
+            var OD2:int =GetRandomInt(maxOO+1, maxOD)
+            loop:
+               
+                if(OD1=OD2):
+                    set OD2 =GetRandomInt(maxOO+1, maxOD)
+                else break
+            var OD3:int =GetRandomInt(maxOO+1, maxOD)
+            loop:
+               
+                if(OD1=OD3 or OD2=OD3):
+                    set OD3 =GetRandomInt(maxOO+1, maxOD)
+                else break
+            ObjetosD :[]int = array{OD1,OD2}<#¿Creo que ya esta claro no?#>
+           
+            CVP1:int=maxOD+1 <#Los que no tenga var es que estaran siempre disponibles y no variaran en este caso vendajes#>
+            var CVP2:int =GetRandomInt(maxOD+2, maxCVP)
+            var CVP3:int =GetRandomInt(maxOD+2, maxCVP)
+            loop:
+               
+                if(CVP2=CVP3):
+                    set CVP3 =GetRandomInt(maxOD+2, maxCVP)
+                else break
+            CurasVP :[]int = array{CVP1,CVP2,CVP3}<#¿Creo que ya esta claro no?#>
+           
+            CVG1:int =maxCVP+1
+            var CVG2:int =GetRandomInt(maxCVP+2, maxCVG)
+            var CVG3:int =GetRandomInt(maxCVP+2, maxCVG)
+            CurasVG :[]int = array{CVG1,CVG2}<#¿Creo que ya esta claro no?#>
+           
+            CEP1:int=maxCVG+1
+            var CEP2:int=GetRandomInt(maxCVG+2, maxCEP)
+            var CEP3:int=GetRandomInt(maxCVG+2, maxCEP)
+
+
+            CurasEP :[]int = array{CEP1,CEP2}<#¿Creo que ya esta claro no?#>
+           
+            CEG1:int =maxCEP+1
+            var CEG2:int =GetRandomInt(maxCEP+2, maxCEG)
+            var CEG3:int=GetRandomInt(maxCEP+2, maxCEG)
+            loop:
+               
+                if(CEG2=CEG3):
+                    set CEG3 =GetRandomInt(maxCEP+2, maxCEG)
+                else break
+            CurasEG :[]int = array{CEG1,CEG2,CEG3}<#¿Creo que ya esta claro no?#>
+            var CMP1:int=GetRandomInt(maxCEG+1, maxCMP)
+            var CMP2:int =GetRandomInt(maxCEG+1, maxCMP)
+            loop:
+               
+                if(CMP1=CMP2):
+                    set CMP2 =GetRandomInt(maxCEG+1, maxCMP)
+                else break
+            var CMP3:int=GetRandomInt(maxCEG+1, maxCMP)
+            loop:
+               
+                if(CMP1=CMP3 or CMP2=CMP3):
+                    set CMP3 =GetRandomInt(maxCEG+1, maxCMP)
+                else break
+            CurasMP :[]int = array{CMP1,CMP2,CMP3}<#¿Creo que ya esta claro no?#>
+           
+            var CMG1:int=GetRandomInt(maxCMP+1, maxCMG)
+            var CMG2:int =GetRandomInt(maxCMP+1, maxCMG)
+            loop:
+               
+                if(CMG1=CMG2):
+                    set CMG2 =GetRandomInt(maxCMP+1, maxCMG)
+                else break
+            var CMG3:int=GetRandomInt(0, maxL)
+            loop:
+               
+                if(CMG1=CMG3 or CMG2=CMG3):
+                    set CMG3 =GetRandomInt(maxCMP+1, maxCMG)
+                else break
+            CurasMG :[]int = array{CMG1,CMG2,CMG3}<#¿Creo que ya esta claro no?#>
+
+
+
+
+            var ArrayTotal:[][]int= array{Ligeras,Medianas,Escopeta,Arco,Pesada,Cuerpo,Explosivos,Revolver,Otros,MovilidadA,MovilidadObjeto,ObjetosO,ObjetosD,CurasVP,CurasVG,CurasEP,CurasEG,CurasMP,CurasMG}
+            <#Ahora ahemos un array 3x3 donde tenemos el tipo de munición que usara y en cada una un arma diferente#>
+            <#El valor para llegar a cada array#>
+            <#<#  L-0  M-1  E-2  A-3  P-4  C-5  EX-6 RE-7 O-8  MA-9  MO-10  OO-11  OD-12 CVP-13 CVG-14 CEP-15 CEG-16 CMP-17 CMG-18#>
+            for (RowIndex -> Row : ArrayTotal):<#Te servira para comprobar que valores han salido#>
+                for (ColIndex -> Value : Row):
+                    Print("Grid[{RowIndex}][{ColIndex}] = {Value}")#>
+            set Called = true
+            return ArrayTotal
+        else:
+            return Grid
+   
+    OLA(Agent:agent):void= <#Aqui decide cuantas veces empieza el proeso que decidira que armas se lleva el jugador#>
+        set Interracted = true
+        var Total:[][]int=PasaData.GetData()
+        set Grid = Total
+        var asa :int =0
+        loop:
+            if(asa=ChestInOne):
+               
+                break
+            else:
+                set asa +=1
+                ChestOpen(Agent,Total)
+    ChestOpen(Agente:agent,Totale:[][]int):void= <#Aqui empieza el proeso que decidira que armas se lleva el jugador#>
+        if (Called = false):
+            set Grid = Totale
+        set Called = true
+        Total:[][]int= Totale<#De aqui se saca todos los array con las armas seleccionadas en la ronda, 38 para luego diseccionarlas#>
+        <#Cofre común-1 Arma  L-M-E, curas P o Escudo P, ademas de 1/5 de objetos de mov o defensivos#>
+        spawn{Otorgador(Agente,Total)}
+
+    <#Aqui estamos declarando funiones que daran un ara aleatoria del tipo que esta bastante claro#>
+    DarSubfusil(Total:[][]int):int=
+        if(BL:=Total[0]):
+            if( Arma := BL[GetRandomInt(0,2)]):
+                Print("{Arma}BL", ?Duration:=6.0)<#El print es por motivos de enontrar errores#>
+                return Arma
+            else return -1
+        else return -1
+    DarMedianas(Total:[][]int):int=
+        if(BM:=Total[1]):
+            if( Arma := BM[GetRandomInt(0,2)]):
+                Print("{Arma}BM", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarCartuchos(Total:[][]int):int=
+        if(BE:=Total[2]):
+            if( Arma := BE[GetRandomInt(0,2)]):
+                Print("{Arma}BE", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarArco(Total:[][]int):int=
+        if(BA:=Total[3]):
+            if( Arma := BA[GetRandomInt(0,1)]):
+                Print("{Arma}BA", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarPesado(Total:[][]int):int=
+        if(BP:=Total[4]):
+            if( Arma := BP[GetRandomInt(0,1)]):
+                Print("{Arma}BP", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarCuerpo(Total:[][]int):int=
+        if(C:=Total[5]):
+            if( Arma := C[0]):
+                Print("{Arma}BC", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarExplosivo(Total:[][]int):int=
+        if(BEX:=Total[6]):
+            if( Arma := BEX[0]):
+                Print("{Arma}BEX", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarRevolver(Total:[][]int):int=
+        if(RE:=Total[7]):
+            if( Arma := RE[0]):
+                Print("{Arma}RE", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarOtro(Total:[][]int):int=
+        if(O:=Total[8]):
+            if( Arma := O[0]):
+                Print("{Arma}O", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarMovilidadArma(Total:[][]int):int=
+        if(MA:=Total[9]):
+            if( Arma := MA[0]):
+                Print("{Arma}MA", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarMovilidadObjeto(Total:[][]int):int=
+        if(MO:=Total[10]):
+            if( Arma := MO[GetRandomInt(0,1)]):
+                Print("{Arma}MO", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarObjetoOfensivo(Total:[][]int):int=
+        if(OO:=Total[11]):
+            if( Arma := OO[GetRandomInt(0,1)]):
+                Print("{Arma}OO", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarObjetoDefensivo(Total:[][]int):int=
+        if(OD:=Total[12]):
+            if( Arma := OD[GetRandomInt(0,1)]):
+                Print("{Arma}OD", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+   
+    DarCuraDeVidaPequena(Total:[][]int):int=
+        if(CVP:=Total[13]):
+            if( Arma := CVP[GetRandomInt(0,1)]):
+                Print("{Arma}CVP", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarCuraDeVidaGrande(Total:[][]int):int=
+        if(CVG:=Total[14]):
+            if( Arma := CVG[GetRandomInt(0,1)]):
+                Print("{Arma}CVG", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarCuraDeEscudoPequena(Total:[][]int):int=
+        if(CVP:=Total[15]):
+            if( Arma := CVP[GetRandomInt(0,1)]):
+                Print("{Arma}CEP", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarCuraDeEscudoGrande(Total:[][]int):int=
+        if(CVG:=Total[16]):
+            if( Arma := CVG[GetRandomInt(0,1)]):
+                Print("{Arma}CEG", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarCuraMixtaPequena(Total:[][]int):int=
+        if(CVP:=Total[17]):
+            if( Arma := CVP[GetRandomInt(0,1)]):
+                Print("{Arma}CMP", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+    DarCuraMixtaGrande(Total:[][]int):int=
+       
+        if(CVP:=Total[18]):
+            if( Arma := CVP[0]):
+                Print("{Arma}CMG", ?Duration:=6.0)
+                return Arma
+            else return -1
+        else return -1
+
+    <#Aqui estan las funiones que daran x arma o objeto de x tipos#>
+    SeleccionAramsBase(Agente:agent,Mandor:int,Total:[][]int,GrantFrecuente:item_granter_device,GrantPocofrecuente:item_granter_device):void=
+        var Mandore:int = Mandor
+        if(4=GetRandomInt(0,4)):
+            set Granto=GrantPocofrecuente
+        else:
+            set Granto =GrantFrecuente
+        case (GetRandomInt(1,3)):
+            1 =>
+                set Mandore = DarSubfusil(Total)
+            2=>            
+                set Mandore = DarMedianas(Total)
+            3=>
+                set Mandore = DarCartuchos(Total)
+            _ =>
+                Print("Default case body")
+        Print("{Mandore}SAB", ?Duration:=6.0)
+        spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandore,Granto)}
+    SeleccionCuras(Agente:agent,Mandor:int,Total:[][]int,TipoDeCofre:int,T1:int,T2:int,T3:int,Prob:int):void=
+        var Mandore:int = Mandor
+        if(TipoDeCofre=1):
+            case(GetRandomInt(0,1)):
+                1=> case(T1):
+                    1=>set Mandore = DarCuraDeVidaPequena(Total)
+
+
+                    2=>set Mandore = DarCuraDeVidaGrande(Total)
+
+
+                    3=>set Mandore = DarCuraDeEscudoPequena(Total)
+
+
+                    4=>set Mandore = DarCuraDeEscudoGrande(Total)
+
+
+                    5=>set Mandore = DarCuraMixtaPequena(Total)
+
+
+                    6=>set Mandore = DarCuraMixtaGrande(Total)
+
+
+                    _=>
+                   
+                _=>case(T2):
+                    1=>set Mandore = DarCuraDeVidaPequena(Total)
+
+
+                    2=>set Mandore = DarCuraDeVidaGrande(Total)
+
+
+                    3=>set Mandore = DarCuraDeEscudoPequena(Total)
+
+
+                    4=>set Mandore = DarCuraDeEscudoGrande(Total)
+
+
+                    5=>set Mandore = DarCuraMixtaPequena(Total)
+
+
+                    6=>set Mandore = DarCuraMixtaGrande(Total)
+
+
+                    _=>
+            Print("{Mandore}SC1", ?Duration:=6.0)
+            spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandore,GrantObjetosYCuras)}
+        if(TipoDeCofre=2):
+            case(GetRandomInt(0,2)):
+                1=> case(T1):
+                    1=>set Mandore = DarCuraDeVidaPequena(Total)
+
+
+                    2=>set Mandore = DarCuraDeVidaGrande(Total)
+
+
+                    3=>set Mandore = DarCuraDeEscudoPequena(Total)
+
+
+                    4=>set Mandore = DarCuraDeEscudoGrande(Total)
+
+
+                    5=>set Mandore = DarCuraMixtaPequena(Total)
+
+
+                    6=>set Mandore = DarCuraMixtaGrande(Total)
+
+
+                    _=>
+                2=> case(T2):
+                    1=>set Mandore = DarCuraDeVidaPequena(Total)
+
+
+                    2=>set Mandore = DarCuraDeVidaGrande(Total)
+
+
+                    3=>set Mandore = DarCuraDeEscudoPequena(Total)
+
+
+                    4=>set Mandore = DarCuraDeEscudoGrande(Total)
+
+
+                    5=>set Mandore = DarCuraMixtaPequena(Total)
+
+
+                    6=>set Mandore = DarCuraMixtaGrande(Total)
+
+
+                    _=>
+                   
+                _=>case(T3):
+                    1=>set Mandore = DarCuraDeVidaPequena(Total)
+
+
+                    2=>set Mandore = DarCuraDeVidaGrande(Total)
+
+
+                    3=>set Mandore = DarCuraDeEscudoPequena(Total)
+
+
+                    4=>set Mandore = DarCuraDeEscudoGrande(Total)
+
+
+                    5=>set Mandore = DarCuraMixtaPequena(Total)
+
+
+                    6=>set Mandore = DarCuraMixtaGrande(Total)
+
+
+                    _=>
+            Print("{Mandore}SC2", ?Duration:=6.0)
+            spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandore,GrantObjetosYCuras)}
+        if(TipoDeCofre=3):
+            case(GetRandomInt(0,2)):
+                1=> case(T1):
+                    1=>set Mandore = DarCuraDeVidaPequena(Total)
+
+
+                    2=>set Mandore = DarCuraDeVidaGrande(Total)
+
+
+                    3=>set Mandore = DarCuraDeEscudoPequena(Total)
+
+
+                    4=>set Mandore = DarCuraDeEscudoGrande(Total)
+
+
+                    5=>set Mandore = DarCuraMixtaPequena(Total)
+
+
+                    6=>set Mandore = DarCuraMixtaGrande(Total)
+
+
+                    _=>
+                2=> case(T2):
+                    1=>set Mandore = DarCuraDeVidaPequena(Total)
+
+
+                    2=>set Mandore = DarCuraDeVidaGrande(Total)
+
+
+                    3=>set Mandore = DarCuraDeEscudoPequena(Total)
+
+
+                    4=>set Mandore = DarCuraDeEscudoGrande(Total)
+
+
+                    5=>set Mandore = DarCuraMixtaPequena(Total)
+
+
+                    6=>set Mandore = DarCuraMixtaGrande(Total)
+
+
+                    _=>
+                   
+                _=>
+                    if(1=GetRandomInt(1,Prob)):
+                       
+                        case(T3):
+                            1=>set Mandore = DarCuraDeVidaPequena(Total)
+
+
+                            2=>set Mandore = DarCuraDeVidaGrande(Total)
+
+
+                            3=>set Mandore = DarCuraDeEscudoPequena(Total)
+
+
+                            4=>set Mandore = DarCuraDeEscudoGrande(Total)
+
+
+                            5=>set Mandore = DarCuraMixtaPequena(Total)
+
+
+                            6=>set Mandore = DarCuraMixtaGrande(Total)
+
+
+                            _=>
+                    else:
+                        set Mandore = DarCuraMixtaPequena(Total)
+                       
+            Print("{Mandore}SC3", ?Duration:=6.0)
+            spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandore,GrantObjetosYCuras)}
+    SeleccionObjetos(Agente:agent,Mandor:int,Total:[][]int,TipoDeCofre:int,T1:int,T2:int,T3:int,Prob:int):void=
+        var Mandore:int = Mandor
+        if(TipoDeCofre=1):
+            case(GetRandomInt(0,1)):
+                1=> case(T1):
+                    1=>set Mandore = DarMovilidadObjeto(Total)
+
+
+                    2=>set Mandore = DarObjetoOfensivo(Total)
+
+
+                    3=>set Mandore = DarObjetoDefensivo(Total)
+
+
+                    _=>
+               
+                _=>case(T2):
+                    1=>set Mandore = DarMovilidadObjeto(Total)
+
+
+                    2=>set Mandore = DarObjetoOfensivo(Total)
+
+
+                    3=>set Mandore = DarObjetoDefensivo(Total)
+
+
+                    _=>
+            Print("{Mandore}SO1", ?Duration:=6.0)
+            spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandore,GrantObjetosYCuras)}
+        if(TipoDeCofre=2):
+            case(GetRandomInt(0,2)):
+                1=> case(T1):
+                    1=>set Mandore = DarMovilidadObjeto(Total)
+
+
+                    2=>set Mandore = DarObjetoOfensivo(Total)
+
+
+                    3=>set Mandore = DarObjetoDefensivo(Total)
+
+
+                    _=>
+                2=> case(T2):
+                    1=>set Mandore = DarMovilidadObjeto(Total)
+
+
+                    2=>set Mandore = DarObjetoOfensivo(Total)
+
+
+                    3=>set Mandore = DarObjetoDefensivo(Total)
+
+
+                    _=>
+                   
+                _=>case(T3):
+                    1=>set Mandore = DarMovilidadObjeto(Total)
+
+
+                    2=>set Mandore = DarCuraDeVidaGrande(Total)
+
+
+                    3=>set Mandore = DarObjetoDefensivo(Total)
+
+
+                    _=>
+            Print("{Mandore}SO2", ?Duration:=6.0)
+            spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandore,GrantObjetosYCuras)}
+        if(TipoDeCofre=3):
+            case(GetRandomInt(0,2)):
+                1=> case(T1):
+                    1=>set Mandore = DarCuraDeVidaPequena(Total)
+
+
+                    2=>set Mandore = DarCuraDeVidaGrande(Total)
+
+
+                    3=>set Mandore = DarCuraDeEscudoPequena(Total)
+
+
+                    _=>
+                2=> case(T2):
+                    1=>set Mandore = DarCuraDeVidaPequena(Total)
+
+
+                    2=>set Mandore = DarCuraDeVidaGrande(Total)
+
+
+                    3=>set Mandore = DarCuraDeEscudoPequena(Total)
+
+
+                    _=>
+                   
+                _=>if(1=GetRandomInt(1,Prob)):
+                    case(T3):
+                        1=>set Mandore = DarCuraDeVidaPequena(Total)
+
+
+                        2=>set Mandore = DarCuraDeVidaGrande(Total)
+
+
+                        3=>set Mandore = DarCuraDeEscudoPequena(Total)
+
+
+                        _=>
+            Print("{Mandore}SO3", ?Duration:=6.0)
+            spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandore,GrantObjetosYCuras)}
+    SeleccionOtrasArams(Agente:agent,Mandor:int,Total:[][]int,TipoDeCofre:int,T1:int,T2:int,T3:int,T4:int,Prob:int):void=
+        var Mandore:int = Mandor
+        if(TipoDeCofre=1):
+            case(GetRandomInt(0,1)):
+                1=> case(T1):
+                    0=> set Mandore = DarOtro(Total)
+
+
+                    1=>set Mandore = DarArco(Total)
+
+
+                    2=>set Mandore = DarPesado(Total)
+
+
+                    3=>set Mandore = DarCuerpo(Total)
+
+
+                    4=>set Mandore = DarExplosivo(Total)
+
+
+                    5=>set Mandore = DarRevolver(Total)
+
+
+                    6=>set Mandore = DarMovilidadArma(Total)
+
+
+                    7=>set Mandore = DarSubfusil(Total)
+
+
+                    8=>set Mandore = DarMedianas(Total)
+
+
+                    9=>set Mandore = DarCartuchos(Total)
+
+
+                    _=>
+                   
+                _=>case(T2):
+                    0=> set Mandore = DarOtro(Total)
+
+
+                    1=>set Mandore = DarArco(Total)
+
+
+                    2=>set Mandore = DarPesado(Total)
+
+
+                    3=>set Mandore = DarCuerpo(Total)
+
+
+                    4=>set Mandore = DarExplosivo(Total)
+
+
+                    5=>set Mandore = DarRevolver(Total)
+
+
+                    6=>set Mandore = DarMovilidadArma(Total)
+
+
+                    7=>set Mandore = DarSubfusil(Total)
+
+
+                    8=>set Mandore = DarMedianas(Total)
+
+
+                    9=>set Mandore = DarCartuchos(Total)
+
+
+                    _=>
+            Print("{Mandore}SOA1", ?Duration:=6.0)
+            spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandore,Granto)}
+        if(TipoDeCofre=2):
+            case(GetRandomInt(0,2)):
+                1=> case(T1):
+                    0=> set Mandore = DarOtro(Total)
+
+
+                    1=>set Mandore = DarArco(Total)
+
+
+                    2=>set Mandore = DarPesado(Total)
+
+
+                    3=>set Mandore = DarCuerpo(Total)
+
+
+                    4=>set Mandore = DarExplosivo(Total)
+
+
+                    5=>set Mandore = DarRevolver(Total)
+
+
+                    6=>set Mandore = DarMovilidadArma(Total)
+
+
+                    7=>set Mandore = DarSubfusil(Total)
+
+
+                    8=>set Mandore = DarMedianas(Total)
+
+
+                    9=>set Mandore = DarCartuchos(Total)
+
+
+                    _=>
+                2=> case(T2):
+                    0=> set Mandore = DarOtro(Total)
+
+
+                    1=>set Mandore = DarArco(Total)
+
+
+                    2=>set Mandore = DarPesado(Total)
+
+
+                    3=>set Mandore = DarCuerpo(Total)
+
+
+                    4=>set Mandore = DarExplosivo(Total)
+
+
+                    5=>set Mandore = DarRevolver(Total)
+
+
+                    6=>set Mandore = DarMovilidadArma(Total)
+
+
+                    7=>set Mandore = DarSubfusil(Total)
+
+
+                    8=>set Mandore = DarMedianas(Total)
+
+
+                    9=>set Mandore = DarCartuchos(Total)
+
+
+                    _=>
+                   
+                _=>case(T3):
+                    0=> set Mandore = DarOtro(Total)
+
+
+                    1=>set Mandore = DarArco(Total)
+
+
+                    2=>set Mandore = DarPesado(Total)
+
+
+                    3=>set Mandore = DarCuerpo(Total)
+
+
+                    4=>set Mandore = DarExplosivo(Total)
+
+
+                    5=>set Mandore = DarRevolver(Total)
+
+
+                    6=>set Mandore = DarMovilidadArma(Total)
+
+
+                    7=>set Mandore = DarSubfusil(Total)
+
+
+                    8=>set Mandore = DarMedianas(Total)
+
+
+                    9=>set Mandore = DarCartuchos(Total)
+
+
+                    _=>
+            Print("{Mandore}SOA2", ?Duration:=6.0)
+            spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandore,Granto)}
+        if(TipoDeCofre=4):
+            case(GetRandomInt(0,2)):
+                1=> case(T1):
+                    0=> set Mandore = DarOtro(Total)
+
+
+                    1=>set Mandore = DarArco(Total)
+
+
+                    2=>set Mandore = DarPesado(Total)
+
+
+                    3=>set Mandore = DarCuerpo(Total)
+
+
+                    4=>set Mandore = DarExplosivo(Total)
+
+
+                    5=>set Mandore = DarRevolver(Total)
+
+
+                    6=>set Mandore = DarMovilidadArma(Total)
+
+
+                    7=>set Mandore = DarSubfusil(Total)
+
+
+                    8=>set Mandore = DarMedianas(Total)
+
+
+                    9=>set Mandore = DarCartuchos(Total)
+
+
+                    _=>
+                2=> case(T2):
+                    0=> set Mandore = DarOtro(Total)
+
+
+                    1=>set Mandore = DarArco(Total)
+
+
+                    2=>set Mandore = DarPesado(Total)
+
+
+                    3=>set Mandore = DarCuerpo(Total)
+
+
+                    4=>set Mandore = DarExplosivo(Total)
+
+
+                    5=>set Mandore = DarRevolver(Total)
+
+
+                    6=>set Mandore = DarMovilidadArma(Total)
+
+
+                    7=>set Mandore = DarSubfusil(Total)
+
+
+                    8=>set Mandore = DarMedianas(Total)
+
+
+                    9=>set Mandore = DarCartuchos(Total)
+
+
+                    _=>
+                3=> case(T2):
+                    0=> set Mandore = DarOtro(Total)
+
+
+                    1=>set Mandore = DarArco(Total)
+
+
+                    2=>set Mandore = DarPesado(Total)
+
+
+                    3=>set Mandore = DarCuerpo(Total)
+
+
+                    4=>set Mandore = DarExplosivo(Total)
+
+
+                    5=>set Mandore = DarRevolver(Total)
+
+
+                    6=>set Mandore = DarMovilidadArma(Total)
+
+
+                    7=>set Mandore = DarSubfusil(Total)
+
+
+                    8=>set Mandore = DarMedianas(Total)
+
+
+                    9=>set Mandore = DarCartuchos(Total)
+
+
+                    _=>
+                   
+                _=>case(T4):
+                    0=> set Mandore = DarOtro(Total)
+
+
+                    1=>set Mandore = DarArco(Total)
+
+
+                    2=>set Mandore = DarPesado(Total)
+
+
+                    3=>set Mandore = DarCuerpo(Total)
+
+
+                    4=>set Mandore = DarExplosivo(Total)
+
+
+                    5=>set Mandore = DarRevolver(Total)
+
+
+                    6=>set Mandore = DarMovilidadArma(Total)
+
+
+                    7=>set Mandore = DarSubfusil(Total)
+
+
+                    8=>set Mandore = DarMedianas(Total)
+
+
+                    9=>set Mandore = DarCartuchos(Total)
+
+
+                    _=>
+            Print("{Mandore}SOA4", ?Duration:=6.0)
+            spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandore,Granto)}
+        if(TipoDeCofre=3):
+            case(GetRandomInt(0,2)):
+                1=> case(T1):
+                    0=> set Mandore = DarOtro(Total)
+
+
+                    1=>set Mandore = DarArco(Total)
+
+
+                    2=>set Mandore = DarPesado(Total)
+
+
+                    3=>set Mandore = DarCuerpo(Total)
+
+
+                    4=>set Mandore = DarExplosivo(Total)
+
+
+                    5=>set Mandore = DarRevolver(Total)
+
+
+                    6=>set Mandore = DarMovilidadArma(Total)
+
+
+                    7=>set Mandore = DarSubfusil(Total)
+
+
+                    8=>set Mandore = DarMedianas(Total)
+
+
+                    9=>set Mandore = DarCartuchos(Total)
+
+
+                    _=>
+                2=> case(T2):
+                    0=> set Mandore = DarOtro(Total)
+
+
+                    1=>set Mandore = DarArco(Total)
+
+
+                    2=>set Mandore = DarPesado(Total)
+
+
+                    3=>set Mandore = DarCuerpo(Total)
+
+
+                    4=>set Mandore = DarExplosivo(Total)
+
+
+                    5=>set Mandore = DarRevolver(Total)
+
+
+                    6=>set Mandore = DarMovilidadArma(Total)
+
+
+                    7=>set Mandore = DarSubfusil(Total)
+
+
+                    8=>set Mandore = DarMedianas(Total)
+
+
+                    9=>set Mandore = DarCartuchos(Total)
+
+
+                    _=>
+                   
+                _=>if(1=GetRandomInt(1,Prob)):
+                    case(T3):
+                        0=> set Mandore = DarOtro(Total)
+
+
+                        1=>set Mandore = DarArco(Total)
+
+
+                        2=>set Mandore = DarPesado(Total)
+
+
+                        3=>set Mandore = DarCuerpo(Total)
+
+
+                        4=>set Mandore = DarExplosivo(Total)
+
+
+                        5=>set Mandore = DarRevolver(Total)
+
+
+                        6=>set Mandore = DarMovilidadArma(Total)
+
+
+                        7=>set Mandore = DarSubfusil(Total)
+
+
+                        8=>set Mandore = DarMedianas(Total)
+
+
+                        9=>set Mandore = DarCartuchos(Total)
+
+
+                        _=>
+            Print("{Mandore}SOA3", ?Duration:=6.0)
+            spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandore,Granto)}
+    Otorgador(Agente:agent,Total:[][]int)<suspends>:void=
+        if(1=GetRandomInt(1,10)):
+            AvisoLlave.Show(Agente)
+            spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",39,GrantPocoComun)}
+        var Mandor:int=0
+        var selector:int=GetRandomInt(1,10)<#Cada seletor es una variable de tipo de cofre que de x tipo de armas#>
+        var Prob:int=GetRandomInt(1,100) <#Aqui se deide que tipo de cofre será#>
+        if(Prob<=ProbComun):
+            if(selector=1):
+                Print("desde 1")
+                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
+                <#Los Tx es para dar diferentes tipso de objetos. Para curas no es realmente necesario#>
+                SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,2<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,5)):
+                    SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,2<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
+            <#Caso cofre comun 2:L,M,E CVP O CMP   1/5 MO O OO#>
+            if(selector=2):
+                Print("desde 2")
+                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
+                SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,5<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,5)):
+                    SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,2<#T2#>,0<#T3#>,1<#Probabilidad#>)
+            <#cASO COFRE COMUN 3:l,m,e cep o cmp 1/5 cvg o ceg#>
+            if(selector=3):
+                Print("desde 3")
+                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
+                SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,5<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,5)):
+                    SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,2<#T1#>,4<#T2#>,0<#T3#>,1<#Probabilidad#>)
+            <#Caso cofre comun 4: L cvp o cep 1/3 M o E#>
+            if(selector=4):
+                Print("desde 4")
+                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
+                SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,5)):
+                    SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
+            <#Caso cofre comun 5: M cvp o mo 1/3 l o E#>
+            if(selector=5):
+                Print("desde 5")
+                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
+                case(GetRandomInt(0,1)):
+                    1=>
+                        set Mandor = DarCuraDeVidaPequena(Total)
+                        spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandor,GrantObjetosYCuras)}
+                        Print("{Mandor}CVP")
+                    _=>
+                        SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,3)):
+                    SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
+            <#Caso cofre comun 6: E OD  O OO 1/5 MO O CEG#>
+            if(selector=6):
+                Print("desde 6")
+                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
+                SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,2<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,5)):
+                    case(GetRandomInt(0,4)):
+                        1=>
+                            SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                        _=>
+                            SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,4<#T1#>,4<#T2#>,0<#T3#>,1<#Probabilidad#>)
+            <#Caso cofre comun 7: M,E MO O OD, 1/2 CMP O CVP#>
+            if(selector=7):
+                Print("desde 7")
+                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
+                case(GetRandomInt(0,1)):
+                    1=>
+                        SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                    _=>
+                        SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,3)):
+                    case(GetRandomInt(0,4)):
+                        1=>
+                            SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                        _=>
+                            SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,5<#T1#>,5<#T2#>,0<#T3#>,1<#Probabilidad#>)
+            <#Caso cofre comun 8: L,M MO O CVP 1/5 CMP O CEP#>
+            if(selector=8):
+                Print("desde 8")
+                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
+                case(GetRandomInt(0,1)):
+                    1=>
+                        SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                    _=>
+                        SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,5)):
+                    case(GetRandomInt(0,4)):
+                        1=>
+                            SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,5<#T1#>,5<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                        _=>
+                            SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
+            <#Caso cofre comun 9: L,E CEP O MO 1/5 CMP O od -------------------#>
+            if(selector=9):
+                Print("desde 9")
+                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
+                case(GetRandomInt(0,1)):
+                    1=>
+                        SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                    _=>
+                        SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,5)):  
+                    case(GetRandomInt(0,4)):
+                        1=>
+                            SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                        _=>
+                            SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,5<#T1#>,5<#T2#>,0<#T3#>,1<#Probabilidad#>)
+            <#Caso cofre comun 10: l,m,e  cvp o cep 1/10 cvp o cEG---------------#>
+            if(selector=10):
+                Print("desde 10")
+                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
+                SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,10)):
+                    SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,2<#T1#>,4<#T2#>,0<#T3#>,1<#Probabilidad#>)
+        <#  L-0  M-1  E-2  A-3  P-4  C-5  EX-6  O-7  MA-8  MO-9  OO-10  OD-11 CVP-12 CVG-13 CEP-14 CEG-15 CMP-16 CMG-17#>
+        if(ProbComun<Prob<=ProbPocoComun):
+            var selectorPC:int=GetRandomInt(1,7)
+        <#Cofre poco común-1 /L, M, E / 1/2 L, M, E/ CVG O CEP O CMP/ 1/2 MO O OO O OD / #>
+            if(selectorPC=1):
+                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
+                if(1=1):
+                    case(GetRandomInt(0,1)):
+                        1=>
+                            SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
+                        _=>
+                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,2<#T1#>,3<#T2#>,5<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,2)):
+                    SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
+        <#Cofre poco común-2 /L, M / 1/2 C, E/ CVP O CEG O CMP/ 1/2 MO O OO O OD / #>
+            if(selectorPC=2):
+                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
+                if(1=1):
+                    SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
+                    SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,4<#T2#>,5<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,2)):
+                    SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
+        <#Cofre poco común-3 /L, E / 1/2 O, M/ CVP O CEP O CMP/ MO O OO O OD / #>        
+            if(selectorPC=3):
+                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
+                case(GetRandomInt(0,1)):
+                    1=>SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,6<#T1#>,8<#T2#>,9<#T3#>,11<#T4#>,1<#Probabilidad#>)
+                    _=>
+                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,3<#T2#>,5<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,2)):
+                    SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
+        <#Cofre poco común-4 /M, E / 1/2 L, A/ CVG O CEP O CMP/ MO O OO O OD / #>
+            if(selectorPC=4):
+                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
+                if(1=1):
+                    case(GetRandomInt(0,1)):
+                        1=>SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,7<#T2#>,9<#T3#>,11<#T4#>,1<#Probabilidad#>)
+                        _=>
+                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,2<#T1#>,3<#T2#>,5<#T3#>,1<#Probabilidad#>)
+                    if(1=GetRandomInt(1,2)):
+                        SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
+        <#Cofre poco común-5 /L, M, E / 1/5 MA,C/ CVP O CEP O CMP/ MO O OO O OD / #>
+            if(selectorPC=5):
+                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
+                SeleccionOtrasArams(Agente,Mandor,Total,4<#Topo de cofre#>,6<#T1#>,3<#T2#>,9<#T3#>,5<#T4#>,1<#Probabilidad#>)
+                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,3<#T2#>,5<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,2)):
+                    SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
+        <#Cofre poco común-6 /L, M, E / 1/5 C,P/ CVP O CEG O CMP/ MO O OO O OD / #>
+            if(selectorPC=6):
+                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
+                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,5<#T1#>,3<#T2#>,2<#T3#>,6<#T4#>,1<#Probabilidad#>)    
+                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,3<#T2#>,5<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,2)):
+                    SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
+       
+        <#Cofre poco común-7 /L, M, E / 1/5 CVG O CVP/ CEG O CEP O CMP/ MO O OO O OD / #>
+            if(selectorPC=7):
+                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
+                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,2<#T2#>,4<#T3#>,1<#Probabilidad#>)
+                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,4<#T1#>,3<#T2#>,5<#T3#>,1<#Probabilidad#>)
+                if(1=GetRandomInt(1,2)):
+                    SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
+        if(ProbPocoComun<Prob<=ProbRaro):
+            var selectorR:int=GetRandomInt(1,1)
+        <#Cofre Raro-1 /L, M, E / 1/2 A o O/ CVP O CEG O CMP/ MO O OO O OD #>
+            if(selectorR=1):
+                SeleccionAramsBase(Agente,Mandor,Total,GrantRare,GrantEpic)
+                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,2<#T2#>,5<#T3#>,0<#T4#>,1<#Probabilidad#>)
+                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,4<#T2#>,6<#T3#>,0<#T4#>,1<#Probabilidad#>)
+                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,2<#T1#>,4<#T2#>,5<#T3#>,1<#Probabilidad#>)
+                SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)    
+        if(ProbRaro<Prob<=ProbEpico):
+            var selectorE :int=1
+        <#Cofre Épico /L, M Y E /P o O o C o A/ 1/2 MA,EX/ CVG O CEG O 1/3 CMG y cmp/ MO O OO O OD 38 #>    
+            if(selectorE=1):
+                SeleccionAramsBase(Agente,Mandor,Total,GrantEpic,GrantLegendary)
+                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,2<#T2#>,5<#T3#>,0<#T4#>,1<#Probabilidad#>)
+                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,4<#T2#>,6<#T3#>,0<#T4#>,1<#Probabilidad#>)
+                SeleccionCuras(Agente,Mandor,Total,3<#Topo de cofre#>,2<#T1#>,4<#T2#>,6<#T3#>,3<#Probabilidad#>)
+                SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)  
+                SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)  
+        if(ProbEpico<Prob<=ProbLegendario):
+            var selectorL:int=1
+        <#Cofre Legendario /L, M Y E /P o O o C o A/ MA,EX/ CVG O CEG y CMG y cmp/ MO O OO O OD  #>
+            if(selectorL=1):
+                SeleccionAramsBase(Agente,Mandor,Total,GrantEpic,GrantLegendary)
+                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,2<#T2#>,0<#T3#>,0<#T4#>,1<#Probabilidad#>)
+                SeleccionOtrasArams(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,4<#T2#>,6<#T3#>,0<#T4#>,1<#Probabilidad#>)
+                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,5<#T1#>,6<#T2#>,0<#T3#>,0<#T4#>,1<#Probabilidad#>)
+                SeleccionCuras(Agente,Mandor,Total,3<#Topo de cofre#>,2<#T1#>,4<#T2#>,6<#T3#>,3<#Probabilidad#>)
+                SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)  
+        <#for (RowIndex -> Row : Total):<#Esto es para comproar que el grid no cambia y da las arams adecuadas#>
+            for (ColIndex -> Value : Row):
+                Print("Grid[{RowIndex}][{ColIndex}] = {Value}")
+        for (RowIndex -> Row : Total):
+            for (ColIndex -> Value : Row):
+                Print("Grid[{RowIndex}][{ColIndex}] = {Value}")#>
+button_handlera := class:
+    ButtonIndexa : int
+    Devicea : Cofre_De_Loot = Cofre_De_Loot{}
+ 
+    OnButtonPressed(Agent : agent) : void =
+
+
+        Devicea.OLA( Agent)<#En OLA decide cuantas veces empieza el proeso que decidira que armas se lleva el jugador#>
+
+
+
+
+
+
+
