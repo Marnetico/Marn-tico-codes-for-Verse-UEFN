@@ -1,16 +1,34 @@
+
+
 using {/UnrealEngine.com/Temporary/SpatialMath}
-using {/UnrealEngine.com/Temporary/UI}
 using { /Fortnite.com/Devices }
-using { /Fortnite.com/UI }
 using { /Verse.org/Simulation }
 using { /Verse.org/Random }
-using { /Verse.org/Colors/NamedColors }
 OtorgadoraDeItem := class():
     DarItem<public>(Agent:agent, Nama:string, CodigoDeItem:int, Granti:item_granter_device)<suspends>:void =
         Granti.SetNextItem(CodigoDeItem)
         Granti.GrantItem(Agent)
         Granti.SetNextItem(0)
-
+Cofre := class():
+    @editable DarArmasBase:logic=false
+    @editable CvecesArmasBase:int=0
+    @editable DarCurasBase:logic=false
+    @editable CvecesCurasBase:int
+    @editable minCuras:int=0
+    @editable maxCuras:int=0
+    @editable minCuras2:int=0
+    @editable maxCuras2:int=0
+    @editable prob:int=0
+    @editable DarObjetosBase:logic=false
+    @editable CvecesObjetosBase:int=0
+    @editable minObjetos1:int=0
+    @editable maxObjetos1:int=0
+    @editable minObjetos2:int=0
+    @editable maxObjetos2:int=0
+    @editable probobjetos:int=0
+    @editable DarOtrasArmas:logic=false
+    @editable CvecesOtrasAras:int=0
+    @editable probOtrasArmas:int=0
 
 WeapondIndexa:=class(OtorgadoraDeItem):
 Cofre_De_Loot := class(creative_device):
@@ -40,10 +58,19 @@ Cofre_De_Loot := class(creative_device):
     @editable AbrirConSwitch :[]switch_device =array{} <#Es el array de los botones que nos serán switch#>
 
     <#Probabilidades de salir cada objeto#>
+    @editable MaxComun:int=0
     @editable ProbComun:int=0
+
+    @editable MaxPocoComun:int=0
     @editable ProbPocoComun:int=0
+
+    @editable MaxRaro:int=0
     @editable ProbRaro:int=0
+
+    @editable MaxEpico:int=0
     @editable ProbEpico:int=0
+
+    @editable MaxLegendario:int=0
     @editable ProbLegendario:int=0
 
 
@@ -115,6 +142,7 @@ Cofre_De_Loot := class(creative_device):
     var Interracted : logic = false <#Esto es para procesos futuros no tocar#>
     var Grid :[][]int = array{} <#Esto es para procesos futuros no tocar#>
     @editable PasaData : mediator_device = mediator_device{}
+    @editable CofreElementos : []Cofre=array{}
     SendData():void = <#Esto se ocupa de pasar las arams selecionada a otros devices#>
         Print("data has been send")
         Data :[][]int= InicioRonda()
@@ -624,10 +652,10 @@ Cofre_De_Loot := class(creative_device):
                     2=>set Mandore = DarCuraDeVidaGrande(Total)
 
 
-                    3=>set Mandore = DarCuraDeEscudoPequena(Total)
+                    3=>set Mandore = DarCuraMixtaPequena(Total)
 
 
-                    4=>set Mandore = DarCuraDeEscudoGrande(Total)
+                    4=>set Mandore = DarCuraDeVidaGrande(Total)
 
 
                     5=>set Mandore = DarCuraMixtaPequena(Total)
@@ -644,10 +672,10 @@ Cofre_De_Loot := class(creative_device):
                     2=>set Mandore = DarCuraDeVidaGrande(Total)
 
 
-                    3=>set Mandore = DarCuraDeEscudoPequena(Total)
+                    3=>set Mandore = DarCuraMixtaPequena(Total)
 
 
-                    4=>set Mandore = DarCuraDeEscudoGrande(Total)
+                    4=>set Mandore = DarCuraDeVidaGrande(Total)
 
 
                     5=>set Mandore = DarCuraMixtaPequena(Total)
@@ -668,10 +696,10 @@ Cofre_De_Loot := class(creative_device):
                             2=>set Mandore = DarCuraDeVidaGrande(Total)
 
 
-                            3=>set Mandore = DarCuraDeEscudoPequena(Total)
+                            3=>set Mandore = DarCuraMixtaPequena(Total)
 
 
-                            4=>set Mandore = DarCuraDeEscudoGrande(Total)
+                            4=>set Mandore = DarCuraDeVidaGrande(Total)
 
 
                             5=>set Mandore = DarCuraMixtaPequena(Total)
@@ -1199,216 +1227,226 @@ Cofre_De_Loot := class(creative_device):
                         _=>
             Print("{Mandore}SOA3", ?Duration:=6.0)
             spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandore,Granto)}
+    CofreFinalQueRecibe(Agente:agent,Total:[][]int,
+    DarArmasBase:logic,CvecesArmasBase:int,
+    DarCurasBase:logic,CvecesCurasBase:int,min1:int,max1:int,min2:int,max2:int,prob:int,
+    DarObjetosBase:logic,CvecesObjetosBase:int,mino1:int,maxo1:int,mino2:int,maxo2:int,probob:int,
+    DarOtrasArmas:logic,CvecesOtrasAras:int,probOA:int,
+    Grant1:item_granter_device,Grant2:item_granter_device):void=
+        if(DarArmasBase=true):
+            var Cv :int=CvecesArmasBase
+            loop:
+                SeleccionAramsBase(Agente,0,Total,Grant1,Grant2)
+                set Cv = Cv -1
+                if (Cv=0):
+                    break
+        if(DarCurasBase=true):
+            var Cv :int=CvecesCurasBase
+            loop:
+                SeleccionCuras(Agente,0,Total,3<#Topo de cofre#>,GetRandomInt(min1,max1)<#T1#>,GetRandomInt(min1,max1)<#T2#>,GetRandomInt(min2,max2)<#T3#>,prob<#Probabilidad#>)
+                set Cv = Cv -1
+                if (Cv=0):
+                    break
+        if(DarObjetosBase=true):
+            var Cv :int=CvecesObjetosBase
+            loop:
+                SeleccionObjetos(Agente,0,Total,GetRandomInt(1,3)<#Topo de cofre#>,GetRandomInt(mino1,maxo1)<#T1#>,GetRandomInt(mino1,maxo1)<#T2#>,GetRandomInt(mino2,maxo2)<#T3#>,probob<#Probabilidad#>)
+                set Cv = Cv -1
+                if (Cv=0):
+                    break
+        if(DarOtrasArmas=true):
+            var Cv :int=CvecesOtrasAras
+            loop:
+                SeleccionOtrasArams(Agente,0,Total,3<#Topo de cofre#>,GetRandomInt(0,6)<#T1#>,GetRandomInt(0,6)<#T2#>,GetRandomInt(0,6)<#T3#>,GetRandomInt(0,6)<#T4#>,probOA<#Probabilidad#>)
+                set Cv = Cv -1
+                if (Cv=0):
+                    break
+        
+
+
+    ExtraerLogic(valor:int,V:int):logic=
+        var ass:logic=false
+        case (V):
+            1 =>
+                if(asi:=CofreElementos[valor].DarArmasBase):
+                    set ass= asi
+                    Print("assl{1}", ?Duration:=6.0)
+                    return ass
+                    
+                else :
+                    Print("assf{0}", ?Duration:=6.0)
+                    return false
+            2 =>
+                if(asii:=CofreElementos[valor].DarCurasBase):
+                    Print("assl{1}", ?Duration:=6.0)
+                    set ass= asii
+                    return ass
+                else return false
+            3 =>
+                if(asiii:=CofreElementos[valor].DarObjetosBase):
+                    Print("assl{1}", ?Duration:=6.0)
+                    set ass= asiii
+                    return ass
+                else return false
+            4 =>
+                if(asi:=CofreElementos[valor].DarOtrasArmas):
+                    Print("assl{1}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return false
+            _ =>
+                return false    
+    ExtraerValor(valor:int,V:int):int=
+        var ass:int=0
+        case (V):
+            1 =>
+                if(asi:=CofreElementos[valor].CvecesArmasBase):
+                    set ass=asi
+                    Print("ass{ass}", ?Duration:=6.0)
+                    
+                    return ass
+                else return -1
+            2 =>
+                if(asi:=CofreElementos[valor].CvecesCurasBase):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            3 =>
+                if(asi:=CofreElementos[valor].minCuras):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            4 =>
+                if(asi:=CofreElementos[valor].maxCuras):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            5 =>
+                if(asi:=CofreElementos[valor].minCuras2):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            6 =>
+                if(asi:=CofreElementos[valor].maxCuras2):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            7 =>
+                if(asi:=CofreElementos[valor].prob):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            8 =>
+                if(asi:=CofreElementos[valor].CvecesObjetosBase):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            9 =>
+                if(asi:=CofreElementos[valor].minObjetos1):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            10 =>
+                if(asi:=CofreElementos[valor].maxObjetos1):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            11 =>
+                if(asi:=CofreElementos[valor].minObjetos2):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            12 =>
+                if(asi:=CofreElementos[valor].maxObjetos2):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            13 =>
+                if(asi:=CofreElementos[valor].probobjetos):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            14 =>
+                if(asi:=CofreElementos[valor].CvecesOtrasAras):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            15 =>
+                if(asi:=CofreElementos[valor].probOtrasArmas):
+                    Print("ass{ass}", ?Duration:=6.0)
+                    set ass= asi
+                    return ass
+                else return -1
+            
+                
+            _ => 
+                return -1
+
     Otorgador(Agente:agent,Total:[][]int)<suspends>:void=
         if(1=GetRandomInt(1,10)):
             AvisoLlave.Show(Agente)
             spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",39,GrantPocoComun)}
         var Mandor:int=0
         var selector:int=GetRandomInt(1,10)<#Cada seletor es una variable de tipo de cofre que de x tipo de armas#>
-        var Prob:int=GetRandomInt(1,100) <#Aqui se deide que tipo de cofre será#>
-        if(Prob<=ProbComun):
-            if(selector=1):
-                Print("desde 1")
-                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
-                <#Los Tx es para dar diferentes tipso de objetos. Para curas no es realmente necesario#>
-                SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,2<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,5)):
-                    SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,2<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
-            <#Caso cofre comun 2:L,M,E CVP O CMP   1/5 MO O OO#>
-            if(selector=2):
-                Print("desde 2")
-                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
-                SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,5<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,5)):
-                    SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,2<#T2#>,0<#T3#>,1<#Probabilidad#>)
-            <#cASO COFRE COMUN 3:l,m,e cep o cmp 1/5 cvg o ceg#>
-            if(selector=3):
-                Print("desde 3")
-                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
-                SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,5<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,5)):
-                    SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,2<#T1#>,4<#T2#>,0<#T3#>,1<#Probabilidad#>)
-            <#Caso cofre comun 4: L cvp o cep 1/3 M o E#>
-            if(selector=4):
-                Print("desde 4")
-                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
-                SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,5)):
-                    SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
-            <#Caso cofre comun 5: M cvp o mo 1/3 l o E#>
-            if(selector=5):
-                Print("desde 5")
-                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
-                case(GetRandomInt(0,1)):
-                    1=>
-                        set Mandor = DarCuraDeVidaPequena(Total)
-                        spawn{IndicacionDeDondeEstaLaFuncion.DarItem(Agente,"Ese",Mandor,GrantObjetosYCuras)}
-                        Print("{Mandor}CVP")
-                    _=>
-                        SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,3)):
-                    SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
-            <#Caso cofre comun 6: E OD  O OO 1/5 MO O CEG#>
-            if(selector=6):
-                Print("desde 6")
-                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
-                SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,2<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,5)):
-                    case(GetRandomInt(0,4)):
-                        1=>
-                            SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                        _=>
-                            SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,4<#T1#>,4<#T2#>,0<#T3#>,1<#Probabilidad#>)
-            <#Caso cofre comun 7: M,E MO O OD, 1/2 CMP O CVP#>
-            if(selector=7):
-                Print("desde 7")
-                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
-                case(GetRandomInt(0,1)):
-                    1=>
-                        SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                    _=>
-                        SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,3)):
-                    case(GetRandomInt(0,4)):
-                        1=>
-                            SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                        _=>
-                            SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,5<#T1#>,5<#T2#>,0<#T3#>,1<#Probabilidad#>)
-            <#Caso cofre comun 8: L,M MO O CVP 1/5 CMP O CEP#>
-            if(selector=8):
-                Print("desde 8")
-                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
-                case(GetRandomInt(0,1)):
-                    1=>
-                        SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                    _=>
-                        SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,5)):
-                    case(GetRandomInt(0,4)):
-                        1=>
-                            SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,5<#T1#>,5<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                        _=>
-                            SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
-            <#Caso cofre comun 9: L,E CEP O MO 1/5 CMP O od -------------------#>
-            if(selector=9):
-                Print("desde 9")
-                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
-                case(GetRandomInt(0,1)):
-                    1=>
-                        SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,1<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                    _=>
-                        SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,5)):  
-                    case(GetRandomInt(0,4)):
-                        1=>
-                            SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                        _=>
-                            SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,5<#T1#>,5<#T2#>,0<#T3#>,1<#Probabilidad#>)
-            <#Caso cofre comun 10: l,m,e  cvp o cep 1/10 cvp o cEG---------------#>
-            if(selector=10):
-                Print("desde 10")
-                SeleccionAramsBase(Agente,Mandor,Total,GrantComun,GrantPocoComun)
-                SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,1<#T1#>,3<#T2#>,0<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,10)):
-                    SeleccionCuras(Agente,Mandor,Total,1<#Topo de cofre#>,2<#T1#>,4<#T2#>,0<#T3#>,1<#Probabilidad#>)
-        <#  L-0  M-1  E-2  A-3  P-4  C-5  EX-6  O-7  MA-8  MO-9  OO-10  OD-11 CVP-12 CVG-13 CEP-14 CEG-15 CMP-16 CMG-17#>
-        if(ProbComun<Prob<=ProbPocoComun):
-            var selectorPC:int=GetRandomInt(1,7)
-        <#Cofre poco común-1 /L, M, E / 1/2 L, M, E/ CVG O CEP O CMP/ 1/2 MO O OO O OD / #>
-            if(selectorPC=1):
-                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
-                if(1=1):
-                    case(GetRandomInt(0,1)):
-                        1=>
-                            SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
-                        _=>
-                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,2<#T1#>,3<#T2#>,5<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,2)):
-                    SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
-        <#Cofre poco común-2 /L, M / 1/2 C, E/ CVP O CEG O CMP/ 1/2 MO O OO O OD / #>
-            if(selectorPC=2):
-                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
-                if(1=1):
-                    SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
-                    SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,4<#T2#>,5<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,2)):
-                    SeleccionObjetos(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
-        <#Cofre poco común-3 /L, E / 1/2 O, M/ CVP O CEP O CMP/ MO O OO O OD / #>        
-            if(selectorPC=3):
-                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
-                case(GetRandomInt(0,1)):
-                    1=>SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,6<#T1#>,8<#T2#>,9<#T3#>,11<#T4#>,1<#Probabilidad#>)
-                    _=>
-                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,3<#T2#>,5<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,2)):
-                    SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
-        <#Cofre poco común-4 /M, E / 1/2 L, A/ CVG O CEP O CMP/ MO O OO O OD / #>
-            if(selectorPC=4):
-                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
-                if(1=1):
-                    case(GetRandomInt(0,1)):
-                        1=>SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,7<#T2#>,9<#T3#>,11<#T4#>,1<#Probabilidad#>)
-                        _=>
-                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,2<#T1#>,3<#T2#>,5<#T3#>,1<#Probabilidad#>)
-                    if(1=GetRandomInt(1,2)):
-                        SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
-        <#Cofre poco común-5 /L, M, E / 1/5 MA,C/ CVP O CEP O CMP/ MO O OO O OD / #>
-            if(selectorPC=5):
-                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
-                SeleccionOtrasArams(Agente,Mandor,Total,4<#Topo de cofre#>,6<#T1#>,3<#T2#>,9<#T3#>,5<#T4#>,1<#Probabilidad#>)
-                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,3<#T2#>,5<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,2)):
-                    SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
-        <#Cofre poco común-6 /L, M, E / 1/5 C,P/ CVP O CEG O CMP/ MO O OO O OD / #>
-            if(selectorPC=6):
-                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
-                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,5<#T1#>,3<#T2#>,2<#T3#>,6<#T4#>,1<#Probabilidad#>)    
-                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,3<#T2#>,5<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,2)):
-                    SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
-       
-        <#Cofre poco común-7 /L, M, E / 1/5 CVG O CVP/ CEG O CEP O CMP/ MO O OO O OD / #>
-            if(selectorPC=7):
-                SeleccionAramsBase(Agente,Mandor,Total,GrantPocoComun,GrantRare)
-                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,2<#T2#>,4<#T3#>,1<#Probabilidad#>)
-                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,4<#T1#>,3<#T2#>,5<#T3#>,1<#Probabilidad#>)
-                if(1=GetRandomInt(1,2)):
-                    SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)
-        if(ProbPocoComun<Prob<=ProbRaro):
-            var selectorR:int=GetRandomInt(1,1)
-        <#Cofre Raro-1 /L, M, E / 1/2 A o O/ CVP O CEG O CMP/ MO O OO O OD #>
-            if(selectorR=1):
-                SeleccionAramsBase(Agente,Mandor,Total,GrantRare,GrantEpic)
-                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,2<#T2#>,5<#T3#>,0<#T4#>,1<#Probabilidad#>)
-                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,4<#T2#>,6<#T3#>,0<#T4#>,1<#Probabilidad#>)
-                SeleccionCuras(Agente,Mandor,Total,2<#Topo de cofre#>,2<#T1#>,4<#T2#>,5<#T3#>,1<#Probabilidad#>)
-                SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)    
-        if(ProbRaro<Prob<=ProbEpico):
-            var selectorE :int=1
-        <#Cofre Épico /L, M Y E /P o O o C o A/ 1/2 MA,EX/ CVG O CEG O 1/3 CMG y cmp/ MO O OO O OD 38 #>    
-            if(selectorE=1):
-                SeleccionAramsBase(Agente,Mandor,Total,GrantEpic,GrantLegendary)
-                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,2<#T2#>,5<#T3#>,0<#T4#>,1<#Probabilidad#>)
-                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,4<#T2#>,6<#T3#>,0<#T4#>,1<#Probabilidad#>)
-                SeleccionCuras(Agente,Mandor,Total,3<#Topo de cofre#>,2<#T1#>,4<#T2#>,6<#T3#>,3<#Probabilidad#>)
-                SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)  
-                SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)  
-        if(ProbEpico<Prob<=ProbLegendario):
-            var selectorL:int=1
-        <#Cofre Legendario /L, M Y E /P o O o C o A/ MA,EX/ CVG O CEG y CMG y cmp/ MO O OO O OD  #>
-            if(selectorL=1):
-                SeleccionAramsBase(Agente,Mandor,Total,GrantEpic,GrantLegendary)
-                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,1<#T1#>,2<#T2#>,0<#T3#>,0<#T4#>,1<#Probabilidad#>)
-                SeleccionOtrasArams(Agente,Mandor,Total,1<#Topo de cofre#>,3<#T1#>,4<#T2#>,6<#T3#>,0<#T4#>,1<#Probabilidad#>)
-                SeleccionOtrasArams(Agente,Mandor,Total,2<#Topo de cofre#>,5<#T1#>,6<#T2#>,0<#T3#>,0<#T4#>,1<#Probabilidad#>)
-                SeleccionCuras(Agente,Mandor,Total,3<#Topo de cofre#>,2<#T1#>,4<#T2#>,6<#T3#>,3<#Probabilidad#>)
-                SeleccionObjetos(Agente,Mandor,Total,2<#Topo de cofre#>,3<#T1#>,1<#T2#>,2<#T3#>,1<#Probabilidad#>)  
-        <#for (RowIndex -> Row : Total):<#Esto es para comproar que el grid no cambia y da las arams adecuadas#>
-            for (ColIndex -> Value : Row):
-                Print("Grid[{RowIndex}][{ColIndex}] = {Value}")
-        for (RowIndex -> Row : Total):
-            for (ColIndex -> Value : Row):
-                Print("Grid[{RowIndex}][{ColIndex}] = {Value}")#>
+        var probabilidad:int=GetRandomInt(1,100)
+        var Probc:int=GetRandomInt(0,MaxComun-1) <#Aqui se deide que tipo de cofre será#>
+        var Probpc:int=GetRandomInt(MaxComun,MaxPocoComun-1) <#Aqui se deide que tipo de cofre será#>
+        var Probr:int=GetRandomInt(MaxPocoComun,MaxRaro-1) <#Aqui se deide que tipo de cofre será#>
+        var Probe:int=GetRandomInt(MaxRaro,MaxEpico-1) <#Aqui se deide que tipo de cofre será#>
+        var ProbL:int=GetRandomInt(MaxEpico,MaxLegendario-1) <#Aqui se deide que tipo de cofre será#>
+        var Grant1 :item_granter_device=item_granter_device{}
+        var Grant2 :item_granter_device=item_granter_device{}
+        Print("{probabilidad}", ?Duration:=6.0)
+        Print("{Mandor}", ?Duration:=6.0)
+        Print("{Probc}", ?Duration:=6.0)
+        Print("{Probpc}", ?Duration:=6.0)
+        Print("{Probr}", ?Duration:=6.0)
+        Print("{Probe}", ?Duration:=6.0)
+        Print("{ProbL}", ?Duration:=6.0)
+        
+        if(probabilidad<ProbComun):
+            set Mandor=Probc
+            set Grant1 =GrantComun
+            set Grant2 =GrantPocoComun
+            Print("c{Mandor}", ?Duration:=6.0)
+        if(ProbComun<probabilidad<ProbPocoComun):
+            set Mandor=Probpc
+            set Grant1 =GrantPocoComun
+            set Grant2 =GrantRare
+            Print("pc{Mandor}", ?Duration:=6.0)
+        if(ProbPocoComun<probabilidad<ProbRaro):
+            set Mandor=Probr
+            set Grant1 =GrantRare
+            set Grant2 =GrantEpic
+            Print("r{Mandor}", ?Duration:=6.0)
+        if(ProbRaro<probabilidad<ProbEpico):
+            set Mandor=Probe
+            set Grant1 =GrantEpic
+            set Grant2 =GrantLegendary
+            Print("e{Mandor}", ?Duration:=6.0)
+        if(ProbEpico<probabilidad<ProbLegendario):
+            set Mandor=ProbL
+            set Grant1 =GrantLegendary
+            set Grant2 =GrantLegendary
+            Print("l{Mandor}", ?Duration:=6.0)
+        Print("mf{Mandor}", ?Duration:=6.0)
+        CofreFinalQueRecibe(Agente,Total,ExtraerLogic(Mandor,1)<#DarArmasBase#>,ExtraerValor(Mandor,1)<#CvecesArmasBase#>,
+                ExtraerLogic(Mandor,2)<#DarCurasBase#>,ExtraerValor(Mandor,2)<#CvecesCurasBase#>,ExtraerValor(Mandor,3)<#min1#>,ExtraerValor(Mandor,4)<#max1#>,ExtraerValor(Mandor,5)<#min2#>,ExtraerValor(Mandor,6)<#max2#>,ExtraerValor(Mandor,7)<#prob#>,
+                ExtraerLogic(Mandor,3)<#DarObjetosBase#>,ExtraerValor(Mandor,8)<#CvecesObjetosBase#>,ExtraerValor(Mandor,9)<#mino1#>,ExtraerValor(Mandor,10)<#maxo1#>,ExtraerValor(Mandor,11)<#mino2#>,ExtraerValor(Mandor,12)<#maxo2#>,ExtraerValor(Mandor,13)<#probob#>,
+                ExtraerLogic(Mandor,4)<#DarOtrasArmas#>,ExtraerValor(Mandor,14)<#CvecesOtrasAras#>,ExtraerValor(Mandor,15)<#probOA#>,Grant1,Grant2)
 button_handlera := class:
     ButtonIndexa : int
     Devicea : Cofre_De_Loot = Cofre_De_Loot{}
