@@ -1,0 +1,65 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+void printFormattedList(const vector<string>& list) {
+    cout << "(";
+    for (size_t i = 0; i < list.size(); ++i) {
+        cout << list[i];
+        if (i < list.size() - 1) {
+            cout << ",";
+        }
+    }
+    cout << ")" << endl;
+}
+
+int main() {
+    vector<string> items;
+    string input, newItem;
+    int position;
+
+    // Leer lista inicial desde archivo
+    ifstream inputFile("input.txt");
+    if (!inputFile.is_open()) {
+        cout << "No se pudo abrir el archivo input.txt.\n";
+        return 1;
+    }
+
+    getline(inputFile, input, '\0'); // Leer todo el contenido del archivo
+    inputFile.close();
+
+    // Procesar la entrada inicial para llenar el vector
+    size_t start = 0, end = 0;
+    while ((start = input.find("(", end)) != string::npos) {
+        end = input.find(")", start);
+        if (end != string::npos) {
+            items.push_back(input.substr(start, end - start + 1));
+        }
+    }
+
+    cout << "\nLista inicial procesada:\n";
+    printFormattedList(items);
+
+    // Entrada del nuevo elemento
+    cout << "\nIntroduce el nuevo elemento en el formato (ItemDefinition=\"/path/to/newItem\"):\n";
+    getline(cin, newItem);
+
+    // Posición del nuevo elemento
+    cout << "\nIntroduce la posición (empezando desde 0):\n";
+    cin >> position;
+
+    if (position < 0 || position > items.size()) {
+        cout << "Posición inválida. Saliendo.\n";
+        return 1;
+    }
+
+    items.insert(items.begin() + position, newItem);
+
+    cout << "\nLista final después de añadir el nuevo elemento:\n";
+    printFormattedList(items);
+	system("pause");
+    return 0;
+}
