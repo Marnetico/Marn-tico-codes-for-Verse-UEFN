@@ -1,0 +1,16 @@
+using { /Fortnite.com/Devices }
+using { /Verse.org/Simulation }
+using { /UnrealEngine.com/Temporary/Diagnostics }
+using { /Verse.org/Random }
+
+mediator_device := class(creative_device):
+    var StoredData : [][]int = array{}
+ 
+    # Guarda un [][]int
+    StoreData(Data:[][]int):void =
+        Print("data has been store")
+        set StoredData = Data
+    # Da un [][]int
+    GetData():[][]int =
+        Print("Data ahs been get")
+        StoredData
